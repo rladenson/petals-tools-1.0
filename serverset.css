@@ -1,0 +1,47 @@
+body {
+  background-color: lightblue;
+  margin-left: 1%;
+  opacity: 1;
+}
+
+table, th, td {
+  border:2px solid black;
+}
+
+.all, button {
+  position: relative;
+  font-size: 14pt;
+}
+
+select, input {
+  font-size: 12pt;
+}
+
+#error {
+  font-size: 20pt;
+  background-color: #ff4242;
+}
+
+#content {
+  font-size: 18pt;
+}
+
+body::before {
+  content: "";
+  background-image: url('/Myriad.png');
+  background-size: cover;
+  position: fixed;
+  top: -30%;
+  right: 0px;
+  bottom: -500px;
+  left: 0px;
+  opacity: 0.4;
+}
+
+.template {
+  width: inherit;
+}
+
+#templates {
+  width: 80%;
+}
