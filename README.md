@@ -1,1 +1,1 @@
-# petalstools
+# petals-tools
