@@ -1,320 +1,19 @@
 <!-- SPDX-License-Identifier: CC0-1.0 -->
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <link href='/pk.css' rel='stylesheet' type='text/css' media='all'>
-	<title>Server Settings | petalstools</title>
-	
+  <title>Server Settings | petalstools</title>
   <meta charset="utf-8"/>
-	
-	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="manifest" href="/site.webmanifest">
-	
-	<script>
-	  window.loadtemplate = (num) => {
-	    if(num == 1) {
-	      document.getElementById('display_name').value = localStorage.getItem('template1');
-	    } else if(num == 2) {
-	      document.getElementById('display_name').value = localStorage.getItem('template2');
-	    } else if(num == 3) {
-	      document.getElementById('display_name').value = localStorage.getItem('template3');
-	    }
-	  }
-	  window.save = (id) => {
-	    if(document.getElementById(id).value == "") {
-	      localStorage.removeItem(id);
-	    } else {
-	      localStorage.setItem(id, document.getElementById(id).value);
-	    }
-	  }
-	  window.load = () => {
-	    let storage = window.localStorage;
-	    
-	    for(let i = 0; i < storage.length; i++) {
-	      let key = storage.key(i);
-	      document.getElementById(key).value = storage.getItem(key);
-	    }
-	  }
-	  window.toggleMem = () => { 
-	    if(document.getElementById('autoproxy_mode').value == 'member') {
-	      document.getElementById('autoproxy_member').removeAttribute('hidden');
-	      document.getElementById('ap_member').removeAttribute('hidden');
-	    } else {
-	      document.getElementById('autoproxy_member').setAttribute('hidden', '');
-	      document.getElementById('ap_member').setAttribute('hidden', '');
-	    }
-	  }
-	  window.toggleDisplayName = () => { 
-	    if(document.getElementById('display_name_select').value == 'set') {
-	      document.getElementById('display_name').removeAttribute('hidden');
-	      document.getElementById('tempid1').removeAttribute('hidden');
-	      document.getElementById('tempid2').removeAttribute('hidden');
-	      document.getElementById('tempid3').removeAttribute('hidden');
-	    } else {
-	      document.getElementById('display_name').setAttribute('hidden');
-	      document.getElementById('tempid1').setAttribute('hidden', '');
-	      document.getElementById('tempid2').setAttribute('hidden', '');
-	      document.getElementById('tempid3').setAttribute('hidden', '');
-	    }
-	  }
-	  window.toggleAvatar = () => { 
-	    if(document.getElementById('avatar_url_select').value == 'set') {
-	      document.getElementById('avatar_url').removeAttribute('hidden');
-	    } else {
-	      document.getElementById('avatar_url').setAttribute('hidden', '');
-	    }
-	  }
-		window.lock = false;
-		window.wait = (time) => new Promise(res => setTimeout(res, time));
-		window.waitFetch = async (url, args) => {
-			while (window.lock) await wait(1);
-			window.lock = true;
-			setTimeout(() => window.lock = false, 500);
-			return fetch(url, args);
-		};
-		window.update = (text) => document.getElementById("content").innerHTML = text;
-		window.clearConsole = () => {
-		  document.getElementById('error').innerHTML = '';
-		  document.getElementById('content').innerHTML = '';
-		}
-		window.updateList = async (memberjson, member) => {
-		  let element = document.getElementById('staying_content');
-		  let str = element.innerHTML.substring(0,element.innerHTML.length-8) + `<tr><td>${member.name}</td><td>${member.id}</td><td>${memberjson.display_name ? memberjson.display_name : "<i>None set</i>"}</td><td>${memberjson.avatar_url ? memberjson.avatar_url : "<i>None set</i>"}</td></tr></table>`;
-		  element.innerHTML = str;
-		}
-		window.viewAll = () => window.viewAllInner().then(() => document.getElementById('content').innerHTML = 'Done!').catch(err => document.getElementById('error').innerHTML = err);
-		window.viewAllInner = async () => {
-		  window.clearConsole();
-		  document.getElementById('staying_content').innerHTML = `<table><tr><th>Member Name</th><th>Member ID</th><th>Servername</th><th>Serveravatar</th></tr></table>`;
-		  
-		  let token = document.getElementById('token').value;
-		  if(token.length == 0) {
-	      throw('Please enter a token');
-	    } else if(token.length != 64) {
-	      throw('Token is not a token (should be a 64-char long string1)');
-	    }
-			console.log(`got token ${token}`);
-			
-			let server = document.getElementById('serverid').value;
-	    let serverid;
-	    if(server.length == 0) {
-	      throw('Please put a server');
-	    } else if(isNaN(server)) {
-	      let l = server.length;
-	      serverid = server.substring(l - (18 * 3) - 2, l - (18 * 2) - 2);
-	      if(isNaN(serverid)) {
-	        throw('not a valid server');
-	      }
-	    } else {
-	      serverid = server;
-	    }
-			
-			let members = await waitFetch(`https://api.pluralkit.me/v2/systems/@me/members`, {
-				headers: { 'Authorization': token }
-			});
-			
-			members = await members.json();
-			
-			for (let i = 0; i < members.length; i++ ) {
-				let member = await waitFetch(`https://api.pluralkit.me/v2/members/${members[i].id}/guilds/${serverid}`, {
-					method: 'GET',
-					headers: {
-						'Authorization': token,
-						'content-type': 'application/json'
-					}
-				});
-				
-				let memberjson = await member.json();
-				
-				if(member.status == 200 || (member.status == 404 && (memberjson.code == 20010))) {
-				  await updateList(memberjson, members[i]);
-				} else {
-				  throw(`Something went wrong, please report the following number to Petal in the support server with what you were trying to do: ${member.status}`);
-				}
-				
-				console.log(`Fetched member ${members[i].name} (${members[i].id})`);
-				update(`Remaining members: ${members.length - i}<br>Remaining time (estimate): ${members.length - i} seconds<br>Keep this page open!`);
-			};
-			
-		}
-		window.clearAll = () => window.clearAllInner().then(() => document.getElementById('content').innerHTML = 'Done!').catch(err => document.getElementById('error').innerHTML = err);
-		window.clearAllInner = async () => {
-		  window.clearConsole();
-		  
-		  let token = document.getElementById('token').value;
-		  if(token.length == 0) {
-	      throw('Please enter a token');
-	    } else if(token.length != 64) {
-	      throw('Token is not a token (should be a 64-char long string)');
-	    }
-			console.log(`got token ${token}`);
-			
-			let server = document.getElementById('serverid').value;
-	    let serverid;
-	    if(server.length == 0) {
-	      throw('Please put a server');
-	    } else if(isNaN(server)) {
-	      let l = server.length;
-	      serverid = server.substring(l - (18 * 3) - 2, l - (18 * 2) - 2);
-	      if(isNaN(serverid)) {
-	        throw('not a valid server');
-	      }
-	    } else {
-	      serverid = server;
-	    }
-			
-			let members = await waitFetch(`https://api.pluralkit.me/v2/systems/@me/members`, {
-				headers: { 'Authorization': token }
-			});
-			
-			members = await members.json();
-			
-			for (let i = 0; i < members.length; i++ ) {
-				let response = await waitFetch(`https://api.pluralkit.me/v2/members/${members[i].id}/guilds/${serverid}`, {
-  		    method: 'PATCH',
-  		    headers: {
-  					'Authorization': token,
-  					'content-type': 'application/json'
-  				},
-    		  body: JSON.stringify({
-    		    display_name: null,
-    		    avatar_url: null
-    		  })
-  		  });
-				
-				if(response.status != 200) {
-  		    throw(`Sorry, an error occured (${response.status})`);
-  		  }
-				
-				console.log(`Cleared member ${members[i].name} (${members[i].id})`);
-				update(`Remaining members: ${members.length - i}<br>Remaining time (estimate): ${members.length - i} seconds<br>Keep this page open!`);
-			};
-			
-		}
-		window.runSystem = () => window.runSystemInner().then(() => document.getElementById('content').innerHTML = 'Done!').catch(err => document.getElementById('error').innerHTML = err);
-	  window.runSystemInner = async () => {
-	    window.clearConsole();
-	    let token = document.getElementById('token').value;
-	    if(token.length == 0) {
-	      throw('Please enter a token');
-	    } else if(token.length != 64) {
-	      throw('Token is not a token (should be a 64-char long string)');
-	    }
-			console.log(`got token ${token}`);
-			
-	    let server = document.getElementById('serverid').value;
-	    let serverid;
-	    if(isNaN(server)) {
-	      let l = server.length;
-	      serverid = server.substring(l - (18 * 3) - 2, l - (18 * 2) - 2);
-	      if(isNaN(serverid)) {
-	        throw('not a valid server');
-	      }
-	    } else {
-	      serverid = server;
-	    }
-		  
-		  let proxying_enabled = document.getElementById('proxying_enabled').value;
-		  let tag_enabled = document.getElementById('tag_enabled').value;
-		  let tag = document.getElementById('tag').value;
-		  let autoproxy_mode = document.getElementById('autoproxy_mode').value;
-		  let autoproxy_member = document.getElementById('autoproxy_member').value.toLowerCase();
-		  let tag_toggle = document.getElementById('tag_toggle').checked;
-		  
-		  let json = JSON.stringify({
-  		    proxying_enabled: (proxying_enabled == 'true' ? true : proxying_enabled == 'false' ? false : undefined),
-  		    tag_enabled: (tag_enabled == 'true' ? true : tag_enabled == 'false' ? false : undefined),
-  		    tag: tag_toggle ? null : tag.length > 0 ? tag : undefined,
-  		    autoproxy_mode: ((autoproxy_mode == 'null' || (autoproxy_mode == 'member' && autoproxy_member.length != 5)) ? undefined : autoproxy_mode),
-  		    autoproxy_member: (autoproxy_mode == 'member' && autoproxy_member.length == 5) ? autoproxy_member : undefined
-  		  });
-  		if(json.length == 2) {
-  		  throw('You must change some settings');
-  		}
-		  
-		  let response = await waitFetch(`https://api.pluralkit.me/v2/systems/@me/guilds/${serverid}`, {
-		    method: 'PATCH',
-		    headers: {
-					'Authorization': token,
-					'content-type': 'application/json'
-				},
-  		  body: json
-		  });
-		  
-		  if(response.status != 200) {
-		    throw(`Sorry, an error occured (${response.status})`);
-		  }
-		  
-		  console.log('Patched!');
-	  }
-		window.runMember = () => window.runMemberInner().then(() => document.getElementById('content').innerHTML = 'Done!').catch(err => document.getElementById('error').innerHTML = err);
-		window.runMemberInner = async () => {
-		  window.clearConsole();
-	    let token = document.getElementById('token').value;
-	    if(token.length == 0) {
-	      throw('Please enter a token');
-	    } else if(token.length != 64) {
-	      throw('Token is not a token (should be a 64-char long string)');
-	    }
-			console.log(`got token ${token}`);
-			
-			let server = document.getElementById('serverid').value;
-	    let serverid;
-	    if(isNaN(server)) {
-	      let l = server.length;
-	      serverid = server.substring(l - (18 * 3) - 2, l - (18 * 2) - 2);
-	      if(isNaN(serverid)) {
-	        throw('not a valid server');
-	      }
-	    } else {
-	      serverid = server;
-	    }
-			
-	    let member = document.getElementById('member').value.toLowerCase();
-	    if(member.length != 5) {
-	      throw('Invalid member id');
-	    }
-		  
-		  let display_name = document.getElementById('display_name').value;
-		  let avatar_url = document.getElementById('avatar_url').value;
-		  let display_name_select = document.getElementById('display_name_select').value;
-		  let avatar_url_select = document.getElementById('avatar_url_select').value;
-		  
-		  let json = JSON.stringify({
-  		    display_name: (display_name_select == 'clear' ? null : (display_name_select == 'set' && display_name.length > 0) ? display_name : undefined),
-  		    avatar_url: (avatar_url_select == 'clear' ? null : (avatar_url_select == 'set' && avatar_url.length > 0) ? avatar_url : undefined),
-  		});
-  		if(json.length == 2) {
-  		  throw('You must change some settings');
-  		}
-		  
-		  let response = await waitFetch(`https://api.pluralkit.me/v2/members/${member}/guilds/${serverid}`, {
-		    method: 'PATCH',
-		    headers: {
-					'Authorization': token,
-					'content-type': 'application/json'
-				},
-  		  body: json
-		  });
-		  
-		  if(response.status != 200) {
-		    throw(`Sorry, an error occured (${response.status})`);
-		  }
-		  
-		  console.log('Patched!');
-	  }
-	  window.switchTo = (target) => {
-	    target == 'solo' ? document.getElementById('solo_settings').removeAttribute('hidden') : document.getElementById('solo_settings').setAttribute('hidden', '');
-	    target == 'bulk' ? document.getElementById('bulk_settings').removeAttribute('hidden') : document.getElementById('bulk_settings').setAttribute('hidden', '');
-	    target == 'template' ? document.getElementById('templates').removeAttribute('hidden') : document.getElementById('templates').setAttribute('hidden', '');
-	  }
-	</script>
+  <script type="text/javascript" src="/serverset.js"></script>
 </head>
+
 <body onload='load()'>
-  <div class=all>
+  <div id=all>
     
   	<h1>Change Server Settings</h1>
   	<label for='token'>Token:</label>
@@ -326,9 +25,9 @@
   	
   	
     <div class='buttons'>
-      <input type='button' value='System and Member Settings' onclick='switchTo("solo")'>
-      <input type='button' value='Bulk Member Settings' onclick='switchTo("bulk")'>
-      <input type='button' value='Name Templates' onclick='switchTo("template")'>
+      <button class='pageButton' id='toSoloButton' selected=true onclick='switchTo("toSoloButton")'>System and Member Settings</button>
+      <button class='pageButton' id='toBulkButton' selected=false onclick='switchTo("toBulkButton")'>Bulk Member Settings</button>
+      <button class='pageButton' id='toTemplateButton' selected=false onclick='switchTo("toTemplateButton")'>Name Templates</button>
     </div>
   	
   	<div id='solo_settings'>
@@ -361,8 +60,8 @@
           <option value='member'>Turn Autoproxy to a Member (set below)</option>
         </select>
       <br>
-      <label for='autoproxy_member' id='ap_member' hidden>Autoproxy member* (ignored if autoproxy mode not Member):</label>
-      <input type='text' name='autoproxy_member' id='autoproxy_member' maxlength='5' hidden>
+      <label for='autoproxy_member' class='apMember' hidden>Autoproxy member* (ignored if autoproxy mode not Member):</label>
+      <input type='text' name='autoproxy_member' class='apMember' id='autoproxy_member' maxlength='5' hidden>
       <br>
       <button onclick='runSystem()'>Go!</button>
       <br><br>
@@ -377,11 +76,11 @@
         <option value='set'>Set Servername</option>
       </select>
       <input type='text' maxlength='80' name='display_name' id='display_name' hidden>
-      <input type='button' id='tempid1' value='Load Template 1' onclick='loadtemplate(1)' hidden>
-      <input type='button' id='tempid2' value='Load Template 2' onclick='loadtemplate(2)' hidden>
-      <input type='button' id='tempid3' value='Load Template 3' onclick='loadtemplate(3)' hidden>
+      <input type='button' class='templateLoadButton' value='Load Template 1' onclick='loadtemplate("template1")' hidden>
+      <input type='button' class='templateLoadButton' value='Load Template 2' onclick='loadtemplate("template2")' hidden>
+      <input type='button' class='templateLoadButton' value='Load Template 3' onclick='loadtemplate("template3")' hidden>
       <br>
-      <label for='avatar_url'>Serveravatar:</label> 
+      <label for='avatar_url'>Serveravatar:</label>
       <select id='avatar_url_select' onChange='toggleAvatar()'>
         <option value='null'>Don't Change Setting</option>
         <option value='clear'>Clear Serveravatar</option>
